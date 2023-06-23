@@ -1,6 +1,12 @@
-#include <stdio.h>
-
-int main() {
-    printf("Hello, world!\n");
-    return 0;
-}
+App(
+    appid="Hello_World", 
+    name="Hello World", 
+    apptype=FLipperApptype.PLUGIN,
+    entry_point="hello_world_app", 
+    cdefine=["APP_HELLO_WORLD"], 
+    requires=[
+        "gui"
+    ], 
+    stack_size=2 * 1024
+    order=20
+)
