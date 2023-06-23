@@ -1,0 +1,115 @@
+#include <furi.h>
+#include <furi_hal_console.h>
+#include <furi_hal_gpio.h>
+#include <furi_hal_power.h>
+#include <furi_hal_uart.h>
+#include <math.h>
+#include <stdlib.h>
+
+#define SUB_GHZ_APP_DEBUG 0
+
+#if SUB_GHZ_APP_DEBUG
+#define APP_NAME_TAG "SubGHz_Compass"
+#define SUB_GHZ_APP_LOG_I(format, ...) FURI_LOG_I(APP_NAME_TAG, format, ##__VA_ARGS__)
+#define SUB_GHZ_APP_LOG_D(format, ...) FURI_LOG_D(APP_NAME_TAG, format, ##__VA_ARGS__)
+#define SUB_GHZ_APP_LOG_E(format, ...) FURI_LOG_E(APP_NAME_TAG, format, ##__VA_ARGS__)
+#else
+#define SUB_GHZ_APP_LOG_I(format, ...)
+#define SUB_GHZ_APP_LOG_D(format, ...)
+#define SUB_GHZ_APP_LOG_E(format, ...)
+#endif // SUB_GHZ_APP_DEBUG
+
+#define ENABLE_MODULE_POWER 1
+#define ENABLE_MODULE_DETECTION 1
+
+typedef enum EEventType {
+    EventTypeKey // flipper input.h type
+} EEventType;
+
+typedef struct SPluginEvent {
+    EEventType m_type;
+    InputEvent m_input;
+} SPluginEvent;
+
+typedef struct SCompassReading {
+    double heading;
+    double pitch;
+    double roll;
+} SCompassReading;
+
+typedef struct SSubGhzCompassApp {
+    FuriMutex* mutex;
+    FuriThread* m_worker_thread;
+    SCompassReading m_currentReading;
+} SSubGhzCompassApp;
+
+void initializeHardware()
+{
+    // Code to initialize the hardware (e.g., GPIO, UART, etc.)
+}
+
+void readCompassData(SCompassReading* reading)
+{
+    // Code to read compass data from the Sub-GHz module
+    // and store it in the `reading` structure.
+    // Example:
+    reading->heading = 180.0; // Placeholder value
+    reading->pitch = 0.0;    // Placeholder value
+    reading->roll = 0.0;     // Placeholder value
+}
+
+void processCompassData(SSubGhzCompassApp* app)
+{
+    SCompassReading reading;
+
+    // Read compass data
+    readCompassData(&reading);
+
+    // Acquire the mutex before updating the current reading
+    FURI_MUTEX_ACQUIRE(app->mutex);
+
+    // Update the current reading
+    app->m_currentReading = reading;
+
+    // Release the mutex after updating the current reading
+    FURI_MUTEX_RELEASE(app->mutex);
+}
+
+void* workerThreadFunc(void* arg)
+{
+    SSubGhzCompassApp* app = (SSubGhzCompassApp*)arg;
+
+    while (1) {
+        // Process compass data
+        processCompassData(app);
+
+        // Sleep for a certain period of time (e.g., 100 ms)
+        // before reading the next compass data.
+        FURI_THREAD_SLEEP(100);
+    }
+
+    return NULL;
+}
+
+int main()
+{
+    // Initialize the hardware
+    initializeHardware();
+
+    // Create an instance of the Sub-GHz Compass app
+    SSubGhzCompassApp app;
+    app.mutex = FURI_MUTEX_CREATE();
+    app.m_worker_thread = FURI_THREAD_CREATE(workerThreadFunc, &app);
+
+    // Main loop
+    while (1) {
+        // Perform main app logic here
+
+        // Acquire the mutex to access the current reading
+        FURI_MUTEX_ACQUIRE(app.mutex);
+
+        // Get the current compass reading
+        SCompassReading currentReading = app.m_currentReading;
+
+        // Release the mutex after accessing the current reading
+       
